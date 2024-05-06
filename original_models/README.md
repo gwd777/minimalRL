@@ -37,7 +37,7 @@ Implementations of basic RL algorithms with minimal lines of codes! (PyTorch bas
 # e.g.
 python3 REINFORCE.py
 python3 actor_critic.py
-python3 dqn.py
+python3 modify_dqn.py
 python3 ppo.py
 python3 ddpg.py
 python3 a3c.py
