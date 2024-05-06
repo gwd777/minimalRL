@@ -1,1 +1,1 @@
-just a RDL study
+just a DRL study
