@@ -14,6 +14,7 @@ learning_rate = 0.0005
 gamma = 0.98
 buffer_limit = 100000
 batch_size = 16
+env_steps = 1000
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print('______device type_______>', device)
@@ -63,7 +64,7 @@ def main():
     # 构造Env环境
     # env = gym.make('CartPole-v1')
     train_dataset, test_dataset = get_dataloaders()
-    env = ADEnv(dataset=train_dataset)
+    env = ADEnv(dataset=train_dataset, ENV_STPES=env_steps)
 
     # 构造model
     q = Discriminator(in_planes=82944, device=device).to(device=device)
@@ -77,9 +78,7 @@ def main():
 
     for n_epi in range(500):
         epsilon = max(0.01, 0.08 - 0.01*(n_epi/200)) #Linear annealing from 8% to 1%
-        state, _ = env.reset()
-        done = False
-
+        state, done = env.reset()
         while not done:
             action = q.sample_action(state, epsilon)
             next_state, reward, done, truncated, info = env.step(action)
@@ -91,7 +90,7 @@ def main():
             if done:
                 break
             
-        if memory.size()>2000:
+        if memory.size() > 20:
             train(q, q_target, memory, optimizer)
 
         if n_epi % print_interval == 0 and n_epi != 0:
