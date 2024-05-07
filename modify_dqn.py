@@ -14,7 +14,7 @@ learning_rate = 0.0005
 gamma = 0.98
 buffer_limit = 100000
 batch_size = 16
-env_steps = 1000
+env_steps = 100
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print('______device type_______>', device)
@@ -50,7 +50,7 @@ def train(qnet, qnet_target, memory, optimizer):
     for i in range(10):
         state, action, reward, next_state, done_mask = memory.batch_sample(batch_size)
         q_out = qnet(state)
-        q_a = q_out.gather(2, action)
+        q_a = q_out.gather(1, action)
         max_q_prime = qnet_target(next_state).max(1)[0].unsqueeze(1)
         target = reward + gamma * max_q_prime * done_mask
         loss = F.smooth_l1_loss(q_a, target)
@@ -67,12 +67,12 @@ def main():
     env = ADEnv(dataset=train_dataset, ENV_STPES=env_steps)
 
     # 构造model
-    q = Discriminator(device=device).to(device=device)
-    q_target = Discriminator(device=device).to(device=device)
+    q = Discriminator(in_planes=248832, device=device).to(device=device)
+    q_target = Discriminator(in_planes=248832, device=device).to(device=device)
     q_target.load_state_dict(q.state_dict())
     memory = ReplayBuffer()
 
-    print_interval = 20
+    print_interval = 5
     score = 0.0  
     optimizer = optim.Adam(q.parameters(), lr=learning_rate)
 

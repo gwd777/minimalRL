@@ -23,6 +23,7 @@ class Discriminator(torch.nn.Module):
         super(Discriminator, self).__init__()
         self.device = device
         self.tensor_length = 2352
+
         self.body = torch.nn.Sequential(
             nn.Linear(in_features=in_planes, out_features=hidden_size, bias=True),
             # nn.BatchNorm1d(hidden_size, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
@@ -69,15 +70,16 @@ class Qnet(nn.Module):
 
 if __name__ == '__main__':
     # Initialize the discriminator
-    in_planes = 1536  # Example input size
-    hidden_size = 1024
-    discriminator = Discriminator(in_planes, hidden_size)
-    print(discriminator)
+    # in_planes = 1536  # Example input size
+    # hidden_size = 1024
+    # discriminator = Discriminator(in_planes, hidden_size)
+    # print(discriminator)
 
     # Create a sample input tensor for testing
-    sample_input = torch.randn(3, in_planes)  # Assuming batch size 1
+    image = torch.randn(17, 3, 256, 256)
 
     # Forward pass
-    output = discriminator(sample_input)
+    discriminator = Discriminator()
+    output = discriminator(image)
     print("Output shape:", output.shape)
     print("Output tensor:", output)
