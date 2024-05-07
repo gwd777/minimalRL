@@ -7,23 +7,25 @@ import torch.nn.functional as F
 
 '''
 Discriminator(
-  (body):
-  (block1): Sequential(
-    (0): Linear(in_features=1536, out_features=1024, bias=True)
-    (1): BatchNorm1d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
-    (2): LeakyReLU(negative_slope=0.2)
+  (body): Sequential(
+    (block1): Sequential(
+      (0): Linear(in_features=1536, out_features=1024, bias=True)
+      (1): BatchNorm1d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (2): LeakyReLU(negative_slope=0.2)
+    )
   )
-  (tail): Linear(in_features=7, out_features=1, bias=False)
+  (tail): Linear(in_features=1024, out_features=1, bias=False)
 )
 '''
 
 class Discriminator(torch.nn.Module):
-    def __init__(self, in_planes=4, hidden_size=1024, device='cpu'):
+    def __init__(self, in_planes=1536, hidden_size=1024, device='cpu'):
         super(Discriminator, self).__init__()
         self.device = device
+        self.tensor_length = 2352
         self.body = torch.nn.Sequential(
             nn.Linear(in_features=in_planes, out_features=hidden_size, bias=True),
-            nn.BatchNorm1d(hidden_size, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+            # nn.BatchNorm1d(hidden_size, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
             nn.LeakyReLU(negative_slope=0.2)
         )
         self.tail = torch.nn.Linear(hidden_size, out_features=2, bias=False)

@@ -46,6 +46,7 @@ class Qnet(nn.Module):
         self.fc2 = nn.Linear(128, 128)
         self.fc3 = nn.Linear(128, 2)
 
+    # Tensor(4,) ---> Tensor(2,)
     def forward(self, x):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))

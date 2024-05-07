@@ -32,7 +32,7 @@ def transDataset2Tensor(train_dataset):
     index_normal = []
     for index, data_item in enumerate(train_dataset):
         img = data_item["image"]
-        img = img.view(3, -1)
+        img = img.view(162, 1536)
         is_anomaly = data_item['is_anomaly']
         if is_anomaly:
             index_anomaly.append(index)

@@ -38,8 +38,8 @@ class ReplayBuffer():
             s_prime_lst.append(s_prime)
             done_mask_lst.append([done_mask])
 
-        return torch.tensor(s_lst, dtype=torch.float).to(device=device), torch.tensor(a_lst).to(device=device), \
-               torch.tensor(r_lst).to(device=device), torch.tensor(s_prime_lst, dtype=torch.float).to(device=device), \
+        return torch.stack(s_lst).to(device=device), torch.tensor(a_lst).to(device=device), \
+               torch.tensor(r_lst).to(device=device), torch.stack(s_prime_lst).to(device=device), \
                torch.tensor(done_mask_lst).to(device=device)
     
     def size(self):
@@ -50,7 +50,7 @@ def train(qnet, qnet_target, memory, optimizer):
     for i in range(10):
         state, action, reward, next_state, done_mask = memory.batch_sample(batch_size)
         q_out = qnet(state)
-        q_a = q_out.gather(1, action)
+        q_a = q_out.gather(2, action)
         max_q_prime = qnet_target(next_state).max(1)[0].unsqueeze(1)
         target = reward + gamma * max_q_prime * done_mask
         loss = F.smooth_l1_loss(q_a, target)
@@ -67,8 +67,8 @@ def main():
     env = ADEnv(dataset=train_dataset, ENV_STPES=env_steps)
 
     # 构造model
-    q = Discriminator(in_planes=82944, device=device).to(device=device)
-    q_target = Discriminator(in_planes=82944, device=device).to(device=device)
+    q = Discriminator(device=device).to(device=device)
+    q_target = Discriminator(device=device).to(device=device)
     q_target.load_state_dict(q.state_dict())
     memory = ReplayBuffer()
 
