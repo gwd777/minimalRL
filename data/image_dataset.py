@@ -6,6 +6,8 @@ _DATASETS = {
     # "hwhq": ["data.hwhq", "HWHQDataset"]
 }
 
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
 # 将Dataset转换为ndarray
 def transDataset2Ndarray(train_dataset):
     x = []
@@ -32,7 +34,8 @@ def transDataset2Tensor(train_dataset):
     index_normal = []
     for index, data_item in enumerate(train_dataset):
         img = data_item["image"]
-        img = img.view(-1)
+        img = img.unsqueeze(0)
+        img = img.to(device)
         is_anomaly = data_item['is_anomaly']
         if is_anomaly:
             index_anomaly.append(index)
@@ -51,7 +54,7 @@ def get_dataloaders(
         subdataset='drl_hw_hq_data',
         train_val_split=1.0,
         resize=128,
-        imagesize=288,
+        imagesize=250,
         rotate_degrees=0,
         translate=0,
         scale=0.0,

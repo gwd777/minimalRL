@@ -75,6 +75,39 @@ ActorCriticCnnPolicy(
   (value_net): Linear(in_features=512, out_features=1, bias=True)
 )
 '''
+
+class PolicyImgNet(torch.nn.Module):
+    def __init__(self):
+        super(PolicyImgNet, self).__init__()
+        self.cnn = torch.nn.Sequential(
+            nn.Conv2d(3, 32, kernel_size=(8, 8), stride=(4, 4)),
+            nn.ReLU(),
+            nn.Conv2d(32, 64, kernel_size=(4, 4), stride=(2, 2)),
+            nn.ReLU(),
+            nn.Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1)),
+            nn.ReLU(),
+            nn.Flatten(start_dim=1, end_dim=-1)
+        )   # 输出Tensor=(N, CHW)
+        self.block1 = torch.nn.Sequential(
+            nn.Linear(in_features=46656, out_features=1024, bias=True),
+            nn.LeakyReLU(negative_slope=0.2)
+        )
+        self.action_net = nn.Linear(in_features=1024, out_features=2, bias=True)
+
+    def forward(self, x):
+        x = self.cnn(x)
+        x = self.block1(x)
+        x = self.action_net(x)
+        return x
+
+    def sample_action(self, obs, epsilon):
+        out = self.forward(obs)
+        coin = random.random()
+        if coin < epsilon:
+            return random.randint(0, 1)
+        else:
+            return out.argmax().item()
+
 class Discriminator(torch.nn.Module):
     def __init__(self, in_planes=1536, hidden_size=1024, device='cpu'):
         super(Discriminator, self).__init__()
@@ -83,7 +116,7 @@ class Discriminator(torch.nn.Module):
 
         self.body = torch.nn.Sequential(
             nn.Linear(in_features=in_planes, out_features=hidden_size, bias=True),
-            # nn.BatchNorm1d(hidden_size, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+            nn.BatchNorm1d(hidden_size, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
             nn.LeakyReLU(negative_slope=0.2)
         )
         self.tail = torch.nn.Linear(hidden_size, out_features=2, bias=False)
@@ -132,11 +165,12 @@ if __name__ == '__main__':
     # discriminator = Discriminator(in_planes, hidden_size)
     # print(discriminator)
 
-    # Create a sample input tensor for testing
-    image = torch.randn(17, 3, 256, 256)
+    # Create a sample input tensor for testin
+    discriminator = PolicyImgNet()
+    image = torch.randn(17, 3, 250, 250)
+    output = discriminator(image)
 
-    # Forward pass
-    discriminator = Discriminator()
+    image = torch.randn(1, 3, 250, 250)
     output = discriminator(image)
     print("Output shape:", output.shape)
     print("Output tensor:", output)

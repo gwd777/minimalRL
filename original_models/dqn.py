@@ -57,8 +57,8 @@ class Qnet(nn.Module):
         out = self.forward(obs)
         coin = random.random()
         if coin < epsilon:
-            return random.randint(0,1)
-        else : 
+            return random.randint(0, 1)
+        else:
             return out.argmax().item()
             
 def train(q, q_target, memory, optimizer):

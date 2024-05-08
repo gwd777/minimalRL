@@ -25,25 +25,23 @@ class ADEnv(gym.Env):
         print('_____Normal样本数目:', len(self.index_n))
 
         # observation space:
-        # self.observation_space = gym.spaces.Box(low=0, high=255, shape=(3, 288, 288), dtype=np.uint8)
-        self.observation_space = spaces.Discrete(self.random_range)
+        self.observation_space = gym.spaces.Box(low=0, high=255, shape=(3, 250, 250), dtype=np.uint8)
+        # self.observation_space = spaces.Discrete(self.random_range)
 
         # action space: 0 or 1
         self.action_space = spaces.Discrete(2)
 
         # initial state
         self.state = None
-        self.state_index = 0
+        self.sindex = 0
         self.done = False
         self.counts = 0
 
     def generater_anomaly(self, *args, **kwargs):
-        # sampling function for D_a
         index = np.random.choice(self.index_a)
         return index
 
     def generater_normal(self, *args, **kwargs):
-        # sampling function for D_a
         index = np.random.choice(self.index_n)
         return index
 
@@ -72,45 +70,41 @@ class ADEnv(gym.Env):
     def reward_h(self, action, s_t):
         # Anomaly-biased External Handcrafted Reward Function h
         if (action == 1) & (s_t in self.index_a):
-            return 3
+            return 10
         elif (action == 0) & (s_t in self.index_n):
             return 3
         elif (action == 0) & (s_t in self.index_a):
-            return -1
+            return -3
         elif (action == 1) & (s_t in self.index_n):
-            return -1
+            return -3
         return 0
 
     def step(self, action):
-        self.state_index = int(self.state_index)
-        reward = self.reward_h(action, self.state_index)
-        self.state_index = self.state_index + 1
+        self.sindex = int(self.sindex)
         self.counts = self.counts + 1
 
-        if self.state_index > self.random_range - 1:
+        reward = self.reward_h(action, self.sindex)
+        if self.counts > self.random_range - 2:
             a_param = [self.generater_anomaly, self.generater_normal]
             g = np.random.choice(a_param, p=[0.6, 0.4])
-            self.state_index = g(action, self.state_index)
+            self.sindex = g(action, self.sindex)
+            self.state = self.x[int(self.sindex)][1]
+        else:
+            self.state = self.x[int(self.sindex)][1]
+            self.sindex = self.sindex + 1
 
-        self.state = self.x[int(self.state_index)][1]  # 新的state是一个int值，相当于是新的特征向量Tensor的Index
+        # print('_______StepEnv__________>', self.sindex, self.counts)
         if self.counts > self.ENV_STPES:
             self.done = True
 
-        # info
-        info = {"State t": self.state, "Action t": action, "State_index": self.state_index}
-
-        return self.state, reward, self.done, self.state_index, info
+        info = {"State t": self.state, "Action t": action, "State_index": self.sindex}
+        return self.state, reward, self.done, self.sindex, info
 
     def reset(self, seed=None, options=None):
         self.done = False
         self.counts = 0
-
-        if self.state_index > 0:
-            # the first observation is uniformly sampled from the D_u
-            self.state_index = np.random.choice(self.random_range)
-            self.state_index = int(self.state_index)
-
-        self.state = self.x[self.state_index][1]
+        self.sindex = 0
+        self.state = self.x[self.sindex][1]
         return self.state, self.done
 
     def render(self):
