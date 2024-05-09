@@ -16,7 +16,7 @@ learning_rate = 0.0005
 gamma = 0.98
 buffer_limit = 5000
 batch_size = 64
-steps_per_episode = 2000
+steps_per_episode = 1000
 NUM_EPISODES = 50
 
 target_update = 100
@@ -66,18 +66,17 @@ def train(qnet, qnet_target, memory, optimizer):
     if memory.size() <= batch_size:
         return
 
-    for i in range(3):
-        state, action, reward, next_state, done_mask = memory.batch_sample(batch_size)
-        q_out = qnet(state)
-        q_a = q_out.gather(1, action)
+    state, action, reward, next_state, done_mask = memory.batch_sample(batch_size)
+    q_out = qnet(state)
+    q_a = q_out.gather(1, action)
 
-        max_q_prime = qnet_target(next_state).max(1)[0].unsqueeze(1)
-        target = reward + gamma * max_q_prime * done_mask
-        loss = F.smooth_l1_loss(q_a, target)
-        
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+    max_q_prime = qnet_target(next_state).max(1)[0].unsqueeze(1)
+    target = reward + gamma * max_q_prime * done_mask
+    loss = F.smooth_l1_loss(q_a, target)
+
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
 
 
 from envs.image_envs import ADEnv
@@ -92,8 +91,12 @@ def main():
     q = PolicyImgNet().to(device=device)
     q_target = PolicyImgNet().to(device=device)
     q_target.load_state_dict(q.state_dict())
-    memory = ReplayBuffer()
 
+    # q = Qnet().to(device=device)
+    # q_target = Qnet().to(device=device)
+    # q_target.load_state_dict(q.state_dict())
+
+    memory = ReplayBuffer()
     optimizer = optim.Adam(q.parameters(), lr=learning_rate)
 
     for i_episode in range(NUM_EPISODES):

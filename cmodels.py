@@ -74,6 +74,16 @@ ActorCriticCnnPolicy(
   (action_net): Linear(in_features=512, out_features=2, bias=True)
   (value_net): Linear(in_features=512, out_features=1, bias=True)
 )
+
+self.cnn = torch.nn.Sequential(
+    nn.Conv2d(3, 32, kernel_size=(8, 8), stride=(4, 4)),
+    nn.ReLU(),
+    nn.Conv2d(32, 64, kernel_size=(4, 4), stride=(2, 2)),
+    nn.ReLU(),
+    nn.Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1)),
+    nn.ReLU(),
+    nn.Flatten(start_dim=1, end_dim=-1)
+)   # 输出Tensor=(N, CHW)
 '''
 
 class PolicyImgNet(torch.nn.Module):
@@ -89,7 +99,7 @@ class PolicyImgNet(torch.nn.Module):
             nn.Flatten(start_dim=1, end_dim=-1)
         )   # 输出Tensor=(N, CHW)
         self.block1 = torch.nn.Sequential(
-            nn.Linear(in_features=9216, out_features=1024, bias=True),
+            nn.Linear(in_features=46656, out_features=1024, bias=True),
             nn.LeakyReLU(negative_slope=0.2)
         )
         self.action_net = nn.Linear(in_features=1024, out_features=2, bias=True)

@@ -53,7 +53,7 @@ def get_dataloaders(
         data_path='D:\mvtec_anomaly_detection',
         subdataset='drl_hw_ls_data',
         train_val_split=1.0,
-        resize=128,
+        resize=250,
         imagesize=250,
         rotate_degrees=0,
         translate=0,

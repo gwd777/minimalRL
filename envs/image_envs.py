@@ -76,9 +76,9 @@ class ADEnv(gym.Env):
     def reward_h(self, action, s_t):
         # Anomaly-biased External Handcrafted Reward Function h
         if (action == 1) & (s_t in self.index_a):
-            return 10
-        elif (action == 0) & (s_t in self.index_n):
             return 3
+        elif (action == 0) & (s_t in self.index_n):
+            return 1
         elif (action == 0) & (s_t in self.index_a):
             return -1
         elif (action == 1) & (s_t in self.index_n):
