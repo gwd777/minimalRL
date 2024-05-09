@@ -89,7 +89,7 @@ class PolicyImgNet(torch.nn.Module):
             nn.Flatten(start_dim=1, end_dim=-1)
         )   # 输出Tensor=(N, CHW)
         self.block1 = torch.nn.Sequential(
-            nn.Linear(in_features=46656, out_features=1024, bias=True),
+            nn.Linear(in_features=9216, out_features=1024, bias=True),
             nn.LeakyReLU(negative_slope=0.2)
         )
         self.action_net = nn.Linear(in_features=1024, out_features=2, bias=True)
@@ -101,11 +101,11 @@ class PolicyImgNet(torch.nn.Module):
         return x
 
     def sample_action(self, obs, epsilon):
-        out = self.forward(obs)
         coin = random.random()
         if coin < epsilon:
             return random.randint(0, 1)
         else:
+            out = self.forward(obs)
             return out.argmax().item()
 
 class Discriminator(torch.nn.Module):

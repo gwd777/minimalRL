@@ -2,6 +2,7 @@ import gym
 import collections
 import random
 
+import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
@@ -13,13 +14,15 @@ from data.image_dataset import get_dataloaders
 # Hyperparameters
 learning_rate = 0.0005
 gamma = 0.98
-buffer_limit = 50000
-batch_size = 32
-epoch_1_steps = 500
-num_epochs = 300
-print_interval = 15
+buffer_limit = 5000
+batch_size = 64
+steps_per_episode = 2000
+NUM_EPISODES = 50
 
-episodes_total_reward = []
+target_update = 100
+theta_update = 100
+validation_frequency = 50
+
 pr_auc_history = []
 roc_auc_history = []
 acc_history = []
@@ -60,18 +63,15 @@ class ReplayBuffer():
 
 
 def train(qnet, qnet_target, memory, optimizer):
-    total_loss = 0
-    for i in range(10):
+    if memory.size() <= batch_size:
+        return
+
+    for i in range(3):
         state, action, reward, next_state, done_mask = memory.batch_sample(batch_size)
         q_out = qnet(state)
         q_a = q_out.gather(1, action)
 
         max_q_prime = qnet_target(next_state).max(1)[0].unsqueeze(1)
-        # rt = qnet_target(next_state)
-        # rt_max = rt.max(1)
-        # rt_0_max = rt_max[0]
-        # max_q_prime = rt_0_max.unsqueeze(1)
-
         target = reward + gamma * max_q_prime * done_mask
         loss = F.smooth_l1_loss(q_a, target)
         
@@ -79,16 +79,13 @@ def train(qnet, qnet_target, memory, optimizer):
         loss.backward()
         optimizer.step()
 
-        total_loss = total_loss + loss.item()
-    return total_loss
-
 
 from envs.image_envs import ADEnv
 def main():
     # 构造Env环境
     # env = gym.make('CartPole-v1')
     train_dataset, test_dataset = get_dataloaders()
-    env = ADEnv(dataset=train_dataset, ENV_STPES=epoch_1_steps)
+    env = ADEnv(dataset=train_dataset)
 
     # 构造model
     # q_target = Discriminator(in_planes=248832, device=device).to(device=device)
@@ -97,48 +94,53 @@ def main():
     q_target.load_state_dict(q.state_dict())
     memory = ReplayBuffer()
 
-    score = 0.0
-    total_reward = 0.0
     optimizer = optim.Adam(q.parameters(), lr=learning_rate)
 
-    for n_epi in range(num_epochs):
-        epsilon = max(0.01, 0.08 - 0.01*(n_epi/200))  # Linear annealing from 8% to 1%
+    for i_episode in range(NUM_EPISODES):
+        epsilon = max(0.01, 0.08 - 0.01*(i_episode/200))  # Linear annealing from 8% to 1%
         state, done = env.reset()
-        while not done:
+
+        t_reward = []
+        for t in range(steps_per_episode):
             action = q.sample_action(state, epsilon)
             next_state, reward, done, truncated, info = env.step(action)
             done_mask = 0.0 if done else 1.0
             memory.put((state, action, reward / 100.0, next_state, done_mask))
             state = next_state
 
-            score += reward
-            total_reward += reward
-            if done:
-                break
-            
-        if memory.size() > 50:
-            epoch_loss = train(q, q_target, memory, optimizer)
+            t_reward.append(reward)
 
-        if n_epi % print_interval == 0 and n_epi != 0:
-            q_target.load_state_dict(q.state_dict())
-            roc, pr, acc = test_model(test_set=test_dataset, policy_model=q_target, device=device)
-            print("n_episode:{} | epoch_score:{:.3f} | n_buffer:{} | eps:{:.1f}% | total_reward:{:.1f} | epoch_loss:{:.3f} | acc:{:.3f} | roc:{:.3f}".format(
-                    n_epi, score/print_interval, memory.size(), epsilon*100, total_reward, epoch_loss, acc, roc))
+            # update the target network
+            if t % target_update == 0:
+                train(q, q_target, memory, optimizer)
+                q_target.load_state_dict(q.state_dict())
+            # validation step
+            if t % validation_frequency == 0:
+                roc, pr, acc = test_model(test_set=test_dataset, policy_model=q_target, device=device)
+                pr_auc_history.append(pr)
+                roc_auc_history.append(roc)
+                acc_history.append(acc)
+                # print( "n_episode:{}-{} | epoch_score:{:.3f} | n_buffer:{} | eps:{:.1f}% | acc:{:.3f} | roc:{:.3f} | pr:{:.3f}".format(
+                        # i_episode, t, np.mean(t_reward), memory.size(), epsilon * 100, acc, roc, pr))
+            if t % theta_update == 0:
+                # self.intrinsic_rewards = DQN_iforest(self.x_tensor, self.policy_net)
+                pass
 
-            episodes_total_reward.append(total_reward)
-            pr_auc_history.append(pr)
-            roc_auc_history.append(roc)
-            acc_history.append(acc)
-            score = 0.0
+        avg_reward = np.mean(t_reward)
+        avg_pr = np.mean(pr_auc_history)
+        avg_roc = np.mean(roc_auc_history)
+        avg_acc = np.mean(acc_history)
+        print("n_episode:{} | epoch_score:{:.3f} | n_buffer:{} | eps:{:.1f}% | acc:{:.3f} | roc:{:.3f} | pr:{:.3f}".format(
+            i_episode, avg_reward, memory.size(), epsilon * 100, avg_acc, avg_roc, avg_pr))
 
     env.close()
 
     # save model
-    model_name = 'model_{0}_{1}_.pth'.format(num_epochs, epoch_1_steps)
+    model_name = 'model_{0}_{1}_.pth'.format(NUM_EPISODES, steps_per_episode)
     save_model(model=q_target, model_name=model_name)
 
     # show pic
-    show_results(episodes_total_reward, pr_auc_history, roc_auc_history, acc_history)
+    show_results(t_reward, pr_auc_history, roc_auc_history, acc_history)
 
 
 if __name__ == '__main__':

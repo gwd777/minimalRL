@@ -51,7 +51,7 @@ def transDataset2Tensor(train_dataset):
 def get_dataloaders(
         name="mvtec",
         data_path='D:\mvtec_anomaly_detection',
-        subdataset='drl_hw_hq_data',
+        subdataset='drl_hw_ls_data',
         train_val_split=1.0,
         resize=128,
         imagesize=250,
