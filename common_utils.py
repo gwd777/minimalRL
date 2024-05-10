@@ -37,13 +37,17 @@ def save_model(model, model_name):
 
 def show_results(episodes_total_reward, pr_auc_history, roc_auc_history, acc_history):
     # plot total reward, pr auc and roc auc history in subplots
-    fig, axs = plt.subplots(4, 1, figsize=(10, 15))
-    axs[0].plot(episodes_total_reward)
+    fig, axs = plt.subplots(4, 1, figsize=(10, 17))
     axs[0].set_title('Total reward per episode')
-    axs[1].plot(pr_auc_history)
+    axs[0].plot(episodes_total_reward)
+
     axs[1].set_title('PR AUC per validation step')
-    axs[2].plot(roc_auc_history)
+    axs[1].plot(pr_auc_history)
+
     axs[2].set_title('ROC AUC per validation step')
-    axs[3].plot(acc_history)
+    axs[2].plot(roc_auc_history)
+
     axs[3].set_title('ACC per validation step')
+    axs[3].plot(acc_history)
+
     plt.show()
